@@ -417,6 +417,57 @@ body {
   text-overflow: ellipsis;
 }
 
+/* ---------- AI 智能消除 ---------- */
+.ai-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+.ai-btn {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 9px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--capx-line-strong);
+  border-radius: var(--capx-r-sm);
+  background: var(--capx-bg);
+  color: var(--capx-text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--capx-dur) var(--capx-ease), background var(--capx-dur) var(--capx-ease);
+}
+.ai-btn:hover:not(:disabled) {
+  border-color: #a78bfa;
+  background: color-mix(in srgb, #a78bfa 8%, transparent);
+}
+.ai-btn:disabled { opacity: .45; cursor: default; }
+.ai-btn > svg { grid-row: 1 / 3; color: #a78bfa; }
+.ai-btn span { font-size: 12.5px; font-weight: 700; }
+.ai-btn small { font-size: 10.5px; color: var(--capx-text-3); }
+.ai-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0 10px;
+  border-bottom: 1px solid var(--capx-line);
+  margin-bottom: 6px;
+}
+.sel-input {
+  font-family: var(--capx-font);
+  font-size: 11.5px;
+  color: var(--capx-text);
+  background: var(--capx-bg);
+  border: 1px solid var(--capx-line);
+  border-radius: var(--capx-r-sm);
+  padding: 5px 8px;
+  outline: none;
+}
+
 /* ---------- 隐藏规则（本站列表） ---------- */
 .rule-list {
   display: flex;

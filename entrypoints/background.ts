@@ -3,6 +3,7 @@
 // 负责 captureVisibleTab（必须在 extension 上下文调用）、下载，以及原图缓存（IndexedDB，供弹窗复制）。
 import { defineBackground } from 'wxt/utils/define-background';
 import { ensureHideInjected } from '../src/lib/hideInject';
+import { callLlm, loadAiConfig } from '../src/lib/aiConfig';
 
 /** 动态注册脚本的稳定 id（origin 含特殊字符，做安全化） */
 function hideScriptId(originPattern: string): string {
@@ -111,6 +112,21 @@ export default defineBackground(() => {
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || !msg.type) return;
+
+    if (msg.type === 'capx:ai-complete') {
+      // AI 助手：用用户自带的 API Key 调用 LLM；Key 从不离开扩展上下文
+      (async () => {
+        const cfg = await loadAiConfig();
+        if (!cfg.apiKey) { sendResponse({ ok: false, error: '请先在弹窗里填写 API Key' }); return; }
+        try {
+          const decisions = await callLlm(cfg, msg.nodes || []);
+          sendResponse({ ok: true, decisions });
+        } catch (e: any) {
+          sendResponse({ ok: false, error: e?.message || 'AI 请求失败' });
+        }
+      })();
+      return true;
+    }
 
     if (msg.type === 'capx:sync-hide-scripts') {
       syncHideScripts().then(() => sendResponse({ ok: true }));

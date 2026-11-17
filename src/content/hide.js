@@ -5,6 +5,7 @@
 
 import { addHideRule, getRulesForHost, newRuleId } from '../lib/hideRules';
 import { buildRuleSelector, queryAllScoped, makeAnchor, findByAnchor } from '../lib/selector';
+import { findSimilar, scanNoise, buildSkeleton, dedupeNested } from '../lib/aiLocal';
 
 const state = {
   host: location.hostname,
@@ -18,6 +19,9 @@ const state = {
   hoverIdx: 0,
   locked: null,
   pointEl: null,
+  aiCandidates: [],         // AI 预览候选 []
+  aiMode: null,             // 'similar' | 'scan' | 'llm'
+  aiMap: null,              // LLM 骨架 id -> Element
   ui: {},
 };
 
@@ -157,6 +161,150 @@ function openDetail() {
 function closeDetail() {
   state.detailOpen = false;
   if (state.ui.confirm) state.ui.confirm.style.display = 'none';
+}
+
+// ---------- AI 智能隐藏 ----------
+let aiHighlightStyle = null;
+function highlightCandidates(cands) {
+  clearCandidateHighlight();
+  aiHighlightStyle = document.createElement('style');
+  aiHighlightStyle.id = 'capx-ai-highlight-style';
+  const rules = cands.map((c, i) =>
+    `[data-capx-ai-mark="${i}"]{outline:2px dashed #a78bfa !important;outline-offset:2px;background:rgba(167,139,250,.08) !important;}`
+  ).join('\n');
+  aiHighlightStyle.textContent = rules;
+  (document.head || document.documentElement).appendChild(aiHighlightStyle);
+  cands.forEach((c, i) => { try { c.el.setAttribute('data-capx-ai-mark', String(i)); } catch (_) {} });
+}
+function clearCandidateHighlight() {
+  if (aiHighlightStyle) { aiHighlightStyle.remove(); aiHighlightStyle = null; }
+  document.querySelectorAll('[data-capx-ai-mark]').forEach((el) => el.removeAttribute('data-capx-ai-mark'));
+  document.querySelectorAll('[data-capx-ai-on]').forEach((el) => el.removeAttribute('data-capx-ai-on'));
+}
+
+function renderAiPanel() {
+  ensureUI();
+  state.ui.confirm.innerHTML = '';
+  const titleMap = { similar: '找到的同类元素', scan: '疑似干扰内容', llm: 'AI 分析结果' };
+  const box = h('div', { class: 'capx-hide-card' });
+  box.append(
+    h('div', { class: 'capx-hide-card-title' }, `${titleMap[state.aiMode] || 'AI 结果'} · ${state.aiCandidates.length} 项`),
+    h('div', { class: 'capx-hide-card-hint' }, '勾选要隐藏的项（页面已高亮预览），点「隐藏选中」加入本次操作。')
+  );
+  const list = h('div', { class: 'capx-hide-list' });
+  if (!state.aiCandidates.length) {
+    list.append(h('div', { class: 'capx-hide-card-hint' }, '没有找到候选元素，换个方式再试试。'));
+  }
+  state.aiCandidates.forEach((c) => {
+    const row = h('div', { class: 'capx-hide-list-row ai' });
+    const check = h('input', { type: 'checkbox', class: 'capx-ai-check' });
+    check.checked = c.checked !== false;
+    check.addEventListener('change', () => {
+      c.checked = check.checked;
+      try { if (check.checked) c.el.setAttribute('data-capx-ai-on', '1'); else c.el.removeAttribute('data-capx-ai-on'); } catch (_) {}
+    });
+    if (check.checked) { try { c.el.setAttribute('data-capx-ai-on', '1'); } catch (_) {} }
+    row.append(
+      check,
+      h('div', { class: 'capx-hide-list-main' },
+        h('code', { class: 'capx-hide-card-code', title: c.selector }, c.selector),
+        h('span', { class: 'capx-hide-list-meta' }, `${c.reason}${c.sample ? ' · ' + c.sample : ''}`)
+      )
+    );
+    list.append(row);
+  });
+  box.append(list);
+  box.append(
+    h('div', { class: 'capx-hide-card-actions' },
+      h('button', { type: 'button', class: 'capx-hide-btn', onClick: () => { clearAiPanel(); } }, '取消'),
+      h('button', { type: 'button', class: 'capx-hide-btn primary', onClick: applyAiSelection }, '隐藏选中')
+    )
+  );
+  state.ui.confirm.append(box);
+  state.ui.confirm.style.display = 'flex';
+  highlightCandidates(state.aiCandidates);
+}
+
+function clearAiPanel() {
+  clearCandidateHighlight();
+  state.aiCandidates = [];
+  state.aiMode = null;
+  state.aiMap = null;
+  state.detailOpen = false;
+  if (state.ui.confirm) state.ui.confirm.style.display = 'none';
+}
+
+function applyAiSelection() {
+  const chosen = state.aiCandidates.filter((c) => c.checked !== false);
+  if (!chosen.length) { toast('没有勾选任何元素', true); return; }
+  const bySel = new Map();
+  for (const c of chosen) {
+    const key = c.selector + '||' + c.scope;
+    if (!bySel.has(key)) bySel.set(key, { info: { selector: c.selector, scope: c.scope, label: c.label }, els: [] });
+    bySel.get(key).els.push(c.el);
+  }
+  for (const g of bySel.values()) {
+    const recs = [];
+    for (const el of g.els) {
+      const rec = hideElement(el, PENDING_OWNER);
+      if (rec) recs.push(rec);
+    }
+    if (recs.length) {
+      state.pending.push({ info: g.info, matches: recs.length, recs, tag: g.els[0].tagName.toLowerCase(), anchor: makeAnchor(g.els[0]) });
+    }
+  }
+  const n = state.pending.reduce((s, g) => s + g.recs.length, 0);
+  clearAiPanel();
+  // 注意：不能 exitPick()——那会还原 pending 里刚隐藏的元素。
+  // 留在拾取模式里，让用户继续补选或直接点「保存」。
+  renderBar();
+  toast(`已加入 ${n} 个元素 · 点顶部「保存」永久生效`);
+}
+
+function startSimilar() {
+  ensureUI();
+  enterPick();
+  state.aiMode = 'similar-pick';
+  toast('点一个元素作为样本 · 将找出同类供你勾选');
+}
+
+function startScan() {
+  ensureUI();
+  const cands = dedupeNested(scanNoise());
+  cands.forEach((c) => { c.checked = true; });
+  state.aiMode = 'scan';
+  state.aiCandidates = cands;
+  renderAiPanel();
+}
+
+async function startLlm() {
+  ensureUI();
+  toast('正在分析页面…');
+  const { payload, map } = buildSkeleton();
+  if (!payload.length) { toast('页面没有可分析的元素', true); return; }
+  state.aiMap = map;
+  let res;
+  try {
+    res = await browser.runtime.sendMessage({ type: 'capx:ai-complete', nodes: payload });
+  } catch (e) {
+    toast('AI 调用失败：' + (e?.message || '未知错误'), true);
+    return;
+  }
+  if (!res?.ok) { toast(res?.error || 'AI 调用失败', true); return; }
+  const cands = [];
+  for (const d of (res.decisions || [])) {
+    const el = map.get(d.id);
+    if (!el) continue;
+    const info = buildRuleSelector(el);
+    cands.push({
+      selector: info.selector, scope: info.scope, label: info.label,
+      reason: d.reason || 'AI 判定为干扰内容', matches: 1,
+      sample: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40), el, checked: true,
+    });
+  }
+  state.aiMode = 'llm';
+  state.aiCandidates = dedupeNested(cands);
+  renderAiPanel();
 }
 
 function setHoverHighlight(el) {
@@ -392,6 +540,24 @@ function onClick(e) {
   e.preventDefault();
   e.stopPropagation();
 
+  // A 模式的样本点击：不立即隐藏，找同类并预览
+  if (state.aiMode === 'similar-pick') {
+    const cands = findSimilar(el);
+    // 把样本自身也作为一项
+    const info = buildRuleSelector(el);
+    cands.unshift({
+      selector: info.selector, scope: info.scope, label: info.label,
+      reason: '作为样本的元素', matches: 1,
+      sample: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40), el, checked: true,
+    });
+    state.aiMode = 'similar';
+    state.aiCandidates = dedupeNested(cands);
+    state.chain = []; state.pointEl = null; state.locked = null;
+    hideHover();
+    renderAiPanel();
+    return;
+  }
+
   const info = buildRuleSelector(el);
   const matches = queryAllScoped(info.selector, info.scope);
   // 点下去就立刻消失：把匹配到的元素全部隐藏（与日后规则的效果一致，所见即所得）
@@ -495,6 +661,8 @@ function enterPick() {
   if (state.picking) return;
   state.picking = true;
   state.pending = [];
+  state.aiMode = null;
+  state.aiCandidates = [];
   state.chain = [];
   state.hoverIdx = 0;
   state.locked = null;
@@ -509,6 +677,7 @@ function enterPick() {
 
 function exitPick() {
   // 未保存的隐藏全部还原
+  clearAiPanel();
   state.pending.forEach((g) => g.recs.forEach(releaseRec));
   state.pending = [];
   state.picking = false;
@@ -546,6 +715,21 @@ browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     // 弹窗手动触发：立即重新应用规则（用于诊断 / 规则变化后强制生效）
     applyRules().then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
     return true;
+  }
+  if (msg.type === 'capx:ai-similar') {
+    startSimilar();
+    sendResponse({ ok: true });
+    return false;
+  }
+  if (msg.type === 'capx:ai-scan') {
+    startScan();
+    sendResponse({ ok: true });
+    return false;
+  }
+  if (msg.type === 'capx:ai-llm') {
+    void startLlm();
+    sendResponse({ ok: true });
+    return false;
   }
   return false;
 });

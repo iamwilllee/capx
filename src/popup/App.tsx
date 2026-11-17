@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Dialog } from '@base-ui-components/react/dialog';
 import {
   Scan, Camera, X, FolderOpen, Copy, Trash2, EyeOff, Plus,
-  ShieldCheck, ShieldOff, MousePointer2, Globe2, Power, PowerOff,
+  ShieldCheck, ShieldOff, MousePointer2, Globe2, Power, PowerOff, Sparkles, Wand2, Bot,
 } from 'lucide-react';
 import { Row, Toggle, Segmented, Swatches } from './ui';
 import {
@@ -30,6 +30,10 @@ import {
   setRuleEnabled,
 } from '../lib/hideRules';
 import { ensureHideInjected, startHidePicking, probeRule, type RuleProbe } from '../lib/hideInject';
+import {
+  type AiConfig, type Provider, DEFAULT_AI_CONFIG, PROVIDER_PRESETS,
+  loadAiConfig, saveAiConfig, apiOrigin,
+} from '../lib/aiConfig';
 
 const iconProps = {
   size: 15,
@@ -64,6 +68,10 @@ export function App() {
   const [probes, setProbes] = useState<Record<string, RuleProbe | null>>({});
   const [showAll, setShowAll] = useState(false);
   const [picking, setPicking] = useState(false);
+  // AI 助手
+  const [aiConfig, setAiConfig] = useState<AiConfig>(DEFAULT_AI_CONFIG);
+  const [showAiSettings, setShowAiSettings] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -134,6 +142,7 @@ export function App() {
     refreshHistory();
     setVersion(browser.runtime.getManifest().version);
     void loadSite();
+    void loadAiConfig().then(setAiConfig);
 
     const onChanged = (changes: any, area: string) => {
       if (area === 'local' && changes.capxHistory) refreshHistory();
@@ -219,6 +228,44 @@ export function App() {
     setPicking(false);
     if (!res.ok) { flash(res.error || '启动拾取失败', true); return; }
     window.close();
+  };
+
+  // ---------- AI 助手 ----------
+  const runAi = async (type: 'similar' | 'scan' | 'llm') => {
+    if (!site || !granted) { flash('请先启用本站自动隐藏', true); return; }
+    if (type === 'llm' && !aiConfig.apiKey) {
+      setShowAiSettings(true);
+      flash('请先填写 API Key', true);
+      return;
+    }
+    setAiBusy(true);
+    const injected = await ensureHideInjected(site.tabId);
+    if (!injected.ok) { setAiBusy(false); flash(injected.error || '注入失败', true); return; }
+    try {
+      await browser.tabs.sendMessage(site.tabId, { type: `capx:ai-${type}` });
+      setAiBusy(false);
+      window.close();
+    } catch (e: any) {
+      setAiBusy(false);
+      flash('启动 AI 失败：' + (e?.message || '未知错误'), true);
+    }
+  };
+
+  const saveAi = async () => {
+    // 先存配置，避免授权被拒时用户白填一遍
+    await saveAiConfig(aiConfig);
+    const origin = apiOrigin(aiConfig);
+    if (!origin) { flash('自定义接口地址无效，请检查'); return; }
+    let granted = false;
+    try { granted = await browser.permissions.request({ origins: [origin] }); } catch { granted = false; }
+    setShowAiSettings(false);
+    if (granted) flash('AI 配置已保存并授权');
+    else flash('配置已保存，但未授权 API 域名，AI 分析将无法联网', true);
+  };
+
+  const onProviderChange = (p: Provider) => {
+    if (p === 'custom') setAiConfig({ ...aiConfig, provider: p });
+    else setAiConfig({ ...aiConfig, provider: p, model: PROVIDER_PRESETS[p].model });
   };
 
   const deleteRule = async (host: string, id: string) => {
@@ -423,6 +470,69 @@ export function App() {
             <Plus size={15} aria-hidden />
           </button>
           {!granted && site && <p className="hint-line">先启用本站自动隐藏，才能拾取元素。</p>}
+
+          <section className="card">
+            <div className="card-head">
+              <h2 className="card-title">AI 智能消除</h2>
+              <button className="link" type="button" onClick={() => setShowAiSettings((v) => !v)}>
+                {showAiSettings ? '收起设置' : 'API 设置'}
+              </button>
+            </div>
+            {showAiSettings && (
+              <div className="ai-settings">
+                <p className="site-desc">AI 分析用你自己的 API Key， Key 只存本机、不经过我们服务器。需授权对应 API 域名才能联网。</p>
+                <Row label="服务商">
+                  <select
+                    className="sel-input"
+                    value={aiConfig.provider}
+                    onChange={(e) => onProviderChange(e.target.value as Provider)}
+                    aria-label="AI 服务商"
+                  >
+                    <option value="openai">OpenAI</option>
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                </Row>
+                <Row label="模型">
+                  <input type="text" className="text-input" value={aiConfig.model}
+                    placeholder="模型名" spellCheck={false} aria-label="模型"
+                    onChange={(e) => setAiConfig({ ...aiConfig, model: e.target.value })} />
+                </Row>
+                {aiConfig.provider === 'custom' && (
+                  <Row label="接口地址" hint="以 /v1 结尾，如 https://api.xxx.com/v1">
+                    <input type="text" className="text-input" value={aiConfig.baseUrl}
+                      placeholder="https://api.xxx.com/v1" spellCheck={false} aria-label="接口地址"
+                      onChange={(e) => setAiConfig({ ...aiConfig, baseUrl: e.target.value })} />
+                  </Row>
+                )}
+                <Row label="API Key">
+                  <input type="password" className="text-input" value={aiConfig.apiKey}
+                    placeholder="sk-..." spellCheck={false} aria-label="API Key"
+                    onChange={(e) => setAiConfig({ ...aiConfig, apiKey: e.target.value })} />
+                </Row>
+                <button className="grant-btn" type="button" onClick={saveAi}>保存 AI 配置</button>
+              </div>
+            )}
+            <div className="ai-actions">
+              <button className="ai-btn" type="button" disabled={!granted || aiBusy} onClick={() => runAi('similar')}>
+                <Wand2 size={14} aria-hidden />
+                <span>找同类</span>
+                <small>点一个，找出所有同构元素</small>
+              </button>
+              <button className="ai-btn" type="button" disabled={!granted || aiBusy} onClick={() => runAi('scan')}>
+                <Sparkles size={14} aria-hidden />
+                <span>智能扫描</span>
+                <small>按特征找出疑似广告/推荐</small>
+              </button>
+              <button className="ai-btn" type="button" disabled={!granted || aiBusy || !aiConfig.apiKey} onClick={() => runAi('llm')}>
+                <Bot size={14} aria-hidden />
+                <span>AI 分析</span>
+                <small>用大模型理解页面语义</small>
+              </button>
+            </div>
+            <p className="rule-hint">前两项纯本地；AI 分析用你自己的 Key（{aiConfig.apiKey ? '已配置' : '未配置'}）。结果先高亮预览，勾选后才隐藏。</p>
+          </section>
 
           <section className="card">
             <div className="card-head">

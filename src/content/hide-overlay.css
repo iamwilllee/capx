@@ -153,6 +153,20 @@
   cursor: pointer;
 }
 .capx-hide-list-rm:hover { background: var(--capx-surface); color: var(--capx-warn); }
+.capx-hide-list-row.ai { align-items: flex-start; padding: 8px 10px; }
+.capx-ai-check {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin: 2px 2px 0 0;
+  accent-color: #a78bfa;
+  cursor: pointer;
+}
+[data-capx-ai-on] {
+  outline: 3px solid #a78bfa !important;
+  outline-offset: 2px;
+  background: rgba(167, 139, 250, .14) !important;
+}
 .capx-hide-card-row {
   display: flex;
   align-items: baseline;
