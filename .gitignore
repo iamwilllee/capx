@@ -1,0 +1,10 @@
+node_modules/
+.wxt/
+.output/
+.stats.html
+
+# 旧版直装目录（已被 WXT 取代，仅本地留作对照）
+ext/
+
+# 本地设计过程文件（含 artifact-server 运行日志）
+designs/

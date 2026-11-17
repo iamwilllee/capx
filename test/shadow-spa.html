@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>测试页 · Shadow DOM + SPA 防护</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 60px 80px;
+    font-family: -apple-system, "PingFang SC", "Segoe UI", system-ui, sans-serif;
+    background: #0c0e12; color: #e6e9ef; -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  .sub { font-size: 13px; color: #8b95a4; margin-bottom: 26px; }
+  .panel { border: 1px dashed #2a313c; border-radius: 12px; padding: 18px 20px; margin-bottom: 22px; }
+  .panel h2 { font-size: 14px; margin: 0 0 12px; color: #22d3ee; }
+  .panel p { font-size: 12.5px; color: #8b95a4; margin: 0 0 12px; line-height: 1.7; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  button.act {
+    background: #1a1f27; color: #c5cdd8; border: 1px solid #2a313c;
+    border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  button.act:hover { border-color: #22d3ee; color: #22d3ee; }
+  #spa-block {
+    display: block;
+    background: #12161c; border: 1px solid #232833; border-radius: 12px;
+    padding: 18px 20px; margin-top: 12px;
+  }
+  #spa-block .t { font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+  #spa-block .d { font-size: 12.5px; color: #8b95a4; }
+  .status { font-size: 12px; color: #4ade80; margin-top: 10px; min-height: 16px; }
+</style>
+</head>
+<body>
+  <h1>Shadow DOM + SPA 防护测试</h1>
+  <div class="sub">下面两块分别验证：① 消除可穿透 open Shadow DOM 边界选中内部/宿主；② 被消除元素在页面脚本重置样式后会被自动重新压制。</div>
+
+  <div class="panel">
+    <h2>① Shadow DOM 卡片（open shadow root）</h2>
+    <p>悬停下面的卡片：应先选中 shadow 内部最深元素，滚轮向上可依次提升到 shadow 内容器 → <b>x-shadow-card</b> 宿主 → 主文档容器。</p>
+    <x-shadow-card></x-shadow-card>
+  </div>
+
+  <div class="panel">
+    <h2>② SPA 重渲染对抗</h2>
+    <p>先消除下面这块，再点「模拟框架重置样式」——插件应在下一帧自动把 display 压回 none。</p>
+    <div id="spa-block">
+      <div class="t">这块内容会被框架重置样式</div>
+      <div class="d">SPA 框架（React/Vue）重渲染时会改写内联 style，把我们的 display:none 冲掉。</div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="act" id="btn-reset-style">模拟框架重置样式（1 次）</button>
+      <button class="act" id="btn-reset-loop">模拟框架持续对抗（8 次）</button>
+      <button class="act" id="btn-clone">克隆替换该节点（SPA 重渲染）</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+<script>
+  // —— ① open shadow root 自定义元素 ——
+  class XShadowCard extends HTMLElement {
+    connectedCallback() {
+      if (this.shadowRoot) return;
+      const root = this.attachShadow({ mode: 'open' });
+      root.innerHTML = `
+        <style>
+          .card { display:flex; align-items:center; gap:14px;
+                  background:#12161c; border:1px solid #232833; border-radius:12px;
+                  padding:18px 20px; }
+          .logo { width:40px; height:40px; border-radius:9px; flex-shrink:0;
+                  background:linear-gradient(135deg,#8b5cf6,#6d28d9); }
+          .body { flex:1; min-width:0; }
+          .title { font-size:15px; font-weight:700; margin-bottom:5px; color:#e6e9ef;
+                   font-family:-apple-system,"PingFang SC",sans-serif; }
+          .desc { font-size:12.5px; color:#8b95a4; }
+          .btn { background:#22d3ee; color:#06212a; font-weight:700; font-size:13px;
+                 border:none; border-radius:8px; padding:9px 18px; cursor:pointer;
+                 font-family:inherit; white-space:nowrap; }
+        </style>
+        <div class="card">
+          <div class="logo"></div>
+          <div class="body">
+            <div class="title">Shadow DOM 内部卡片</div>
+            <div class="desc">我的内容住在 open shadow root 里 —— 悬停我试试</div>
+          </div>
+          <button class="btn">去领 ↗</button>
+        </div>`;
+    }
+  }
+  customElements.define('x-shadow-card', XShadowCard);
+
+  // —— ② SPA 对抗脚本 ——
+  const spa = document.getElementById('spa-block');
+  const status = document.getElementById('status');
+  let loopTimers = [];
+
+  function log(msg) { status.textContent = msg; }
+
+  document.getElementById('btn-reset-style').addEventListener('click', () => {
+    spa.style.display = 'flex';  // 框架改写内联 style
+    log('已执行：spa.style.display = "flex"（观察是否被插件压回 none）');
+  });
+
+  document.getElementById('btn-reset-loop').addEventListener('click', () => {
+    log('开始持续对抗：每 120ms 重置一次，共 8 次');
+    let n = 0;
+    const t = setInterval(() => {
+      spa.style.display = 'flex';
+      if (++n >= 8) { clearInterval(t); log('持续对抗结束（8 次）'); }
+    }, 120);
+    loopTimers.push(t);
+  });
+
+  document.getElementById('btn-clone').addEventListener('click', () => {
+    const clone = spa.cloneNode(true);
+    clone.removeAttribute('style'); // 框架重渲染 = 全新节点
+    spa.replaceWith(clone);
+    log('已用克隆节点替换原节点（原节点已从文档移除）');
+    // 注意：替换后 #spa-block 引用更新
+    window.__spaEl = clone;
+  });
+  window.__spaEl = spa;
+</script>
+</body>
+</html>

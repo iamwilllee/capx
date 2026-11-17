@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Capx 深色测试页</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0e1116; color: #e6e9ef;
+         font-family: -apple-system, "PingFang SC", system-ui, sans-serif; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  .sub { color: #8b95a4; font-size: 13px; margin-bottom: 28px; }
+  .banner { background: linear-gradient(120deg, #1b2a35, #22303c); border: 1px solid #2f3d4a;
+            border-radius: 14px; padding: 18px 20px; display: flex; gap: 16px; align-items: center;
+            margin-bottom: 26px; }
+  .banner .body { flex: 1; }
+  .banner .body strong { font-size: 15px; }
+  .banner .body p { margin: 4px 0 0; color: #9aa4b4; font-size: 13px; }
+  .banner .cta { background: #22d3ee; color: #06212a; border: 0; border-radius: 8px;
+                 padding: 8px 14px; font-weight: 700; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { background: #161b23; border: 1px solid #2a3340; border-radius: 12px; padding: 16px; }
+  .card h3 { font-size: 14px; margin: 0 0 8px; }
+  .card p { margin: 0; font-size: 12.5px; color: #9aa4b4; line-height: 1.6; }
+  .ad { margin-top: 26px; background: #1d242e; border: 1px dashed #3a4655; border-radius: 12px;
+        padding: 14px 18px; color: #6b7686; font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>深色页面底下的覆盖层</h1>
+    <div class="sub">用于验证 Capx 在深色站点上的描边、标签与工具栏对比度。</div>
+
+    <div class="banner" id="the-block-i-want-to-remove">
+      <div class="body">
+        <strong>这条推广横幅我截图时不想看到</strong>
+        <p>消除它之后，下面的三张卡片会自动上移填补空缺。</p>
+      </div>
+      <button class="cta">立即领取</button>
+    </div>
+
+    <div class="grid">
+      <div class="card"><h3>极简笔记</h3><p>把每天的想法收进一个本地文件，不联网也不上传。</p></div>
+      <div class="card"><h3>时间块</h3><p>以 25 分钟为单位切分一天，先安排再执行。</p></div>
+      <div class="card"><h3>离线地图</h3><p>出发前把区域下载好，山里没有信号也能导航。</p></div>
+    </div>
+
+    <div class="ad">广告位 · 这条也该被消掉</div>
+  </div>
+</body>
+</html>

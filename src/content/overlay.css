@@ -1,0 +1,311 @@
+/* Capx overlay styles — injected into the page. All names prefixed capx- to avoid collisions.
+   配色/圆角/阴影一律走 tokens.css，保持与弹窗、编辑器同一套视觉语言。 */
+@import '../styles/tokens.css';
+
+#capx-toolbar {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  background: var(--capx-surface);
+  border: 1px solid var(--capx-line);
+  border-radius: var(--capx-r-md);
+  box-shadow: var(--capx-shadow-2);
+  font-family: var(--capx-font);
+  font-size: 12.5px;
+  color: var(--capx-text);
+  user-select: none;
+  pointer-events: auto;
+}
+#capx-toolbar .capx-ico { display: inline-flex; flex-shrink: 0; }
+#capx-toolbar .capx-msg { white-space: nowrap; }
+#capx-toolbar .capx-msg b { color: var(--capx-accent); }
+#capx-toolbar .capx-actions { display: flex; gap: 8px; margin-left: 4px; }
+#capx-toolbar button {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: var(--capx-r-sm);
+  cursor: pointer;
+  border: 1px solid var(--capx-line-strong);
+  background: transparent;
+  color: var(--capx-text);
+  transition: background var(--capx-dur) var(--capx-ease), border-color var(--capx-dur) var(--capx-ease);
+}
+#capx-toolbar button:hover { background: var(--capx-accent-soft); border-color: var(--capx-accent); }
+#capx-toolbar button.capx-primary {
+  background: var(--capx-accent);
+  border: none;
+  color: var(--capx-accent-ink);
+  font-weight: 700;
+}
+#capx-toolbar button.capx-primary:hover { filter: brightness(1.08); }
+#capx-toolbar button:disabled { opacity: .4; cursor: default; }
+
+/* element highlight outline while hovering */
+#capx-hover-box {
+  position: fixed;
+  z-index: 2147483646;
+  border: 2px solid var(--capx-accent);
+  background: color-mix(in srgb, var(--capx-accent) 7%, transparent);
+  border-radius: var(--capx-r-xs);
+  pointer-events: none;
+  display: none;
+  box-sizing: border-box;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 12px color-mix(in srgb, var(--capx-accent) 28%, transparent);
+}
+#capx-hover-label {
+  position: fixed;
+  z-index: 2147483647;
+  background: var(--capx-surface-2);
+  border: 1px solid var(--capx-accent-line);
+  color: var(--capx-accent);
+  font-family: var(--capx-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--capx-r-sm);
+  box-shadow: var(--capx-shadow-1);
+  white-space: nowrap;
+  pointer-events: none;
+  display: none;
+  max-width: 60vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* dim / selection layer for capture mode */
+#capx-dim {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483640;
+  background: rgba(5, 8, 12, 0.55);
+  pointer-events: none;
+  display: none;
+}
+#capx-select {
+  position: fixed;
+  z-index: 2147483645;
+  border: 2px solid var(--capx-accent);
+  border-radius: var(--capx-r-xs);
+  pointer-events: none;
+  display: none;
+  box-sizing: border-box;
+  box-shadow: 0 0 0 9999px rgba(5, 8, 12, 0.55);
+}
+#capx-select .capx-handle {
+  position: absolute;
+  width: 9px; height: 9px;
+  background: var(--capx-accent);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+#capx-select .capx-h-tl { left: -6px; top: -6px; }
+#capx-select .capx-h-tr { right: -6px; top: -6px; }
+#capx-select .capx-h-bl { left: -6px; bottom: -6px; }
+#capx-select .capx-h-br { right: -6px; bottom: -6px; }
+#capx-size-badge {
+  position: fixed;
+  z-index: 2147483647;
+  background: var(--capx-surface-2);
+  border: 1px solid var(--capx-accent-line);
+  color: var(--capx-accent);
+  font-family: var(--capx-mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--capx-r-sm);
+  box-shadow: var(--capx-shadow-1);
+  white-space: nowrap;
+  pointer-events: none;
+  display: none;
+}
+
+/* crosshair cursor covering page in capture mode */
+#capx-crosshair {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483644;
+  cursor: crosshair;
+  display: none;
+  pointer-events: none; /* 不要拦截鼠标事件，事件由 document 监听处理 */
+}
+
+/* transient toast bottom-center */
+#capx-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  z-index: 2147483647;
+  background: var(--capx-surface);
+  border: 1px solid var(--capx-line);
+  color: var(--capx-text);
+  font-family: var(--capx-font);
+  font-size: 12.5px;
+  padding: 10px 16px;
+  border-radius: var(--capx-r-md);
+  box-shadow: var(--capx-shadow-2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--capx-dur) var(--capx-ease), transform var(--capx-dur) var(--capx-ease);
+}
+#capx-toast.capx-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#capx-toast.capx-warn { border-color: var(--capx-warn); color: var(--capx-warn); }
+
+/* onboarding */
+#capx-onboard {
+  position: fixed; inset: 0; z-index: 2147483647;
+  background: rgba(4, 7, 11, 0.66);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--capx-font);
+}
+#capx-onboard .capx-ob-card {
+  width: 380px; max-width: calc(100vw - 40px);
+  background: var(--capx-surface); border: 1px solid var(--capx-line); border-radius: var(--capx-r-lg);
+  padding: 24px; box-shadow: var(--capx-shadow-2);
+  color: var(--capx-text);
+}
+#capx-onboard .capx-ob-title { font-size: 19px; font-weight: 750; margin-bottom: 6px; }
+#capx-onboard .capx-ob-sub { font-size: 12.5px; color: var(--capx-text-2); margin-bottom: 18px; line-height: 1.6; }
+#capx-onboard .capx-ob-steps { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+#capx-onboard .capx-ob-step { display: flex; gap: 12px; }
+#capx-onboard .capx-ob-n {
+  flex-shrink: 0; width: 24px; height: 24px; border-radius: var(--capx-r-sm);
+  background: var(--capx-accent-soft); border: 1px solid var(--capx-accent-line);
+  color: var(--capx-accent); font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--capx-mono);
+}
+#capx-onboard .capx-ob-t { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+#capx-onboard .capx-ob-d { font-size: 12.5px; color: var(--capx-text-2); line-height: 1.65; }
+#capx-onboard .capx-ob-btn {
+  width: 100%; padding: 12px; border-radius: var(--capx-r-md);
+  background: var(--capx-accent); color: var(--capx-accent-ink); border: none;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--capx-accent) 28%, transparent);
+}
+#capx-onboard .capx-ob-btn:hover { filter: brightness(1.07); }
+
+/* ===== annotation editor ===== */
+#capx-editor {
+  position: fixed; inset: 0; z-index: 2147483647;
+  background: rgba(4, 7, 11, 0.86);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--capx-font);
+  color: var(--capx-text);
+}
+#capx-editor .capx-ed-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  max-width: calc(100vw - 24px);
+}
+#capx-editor .capx-ed-topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  width: 100%; background: var(--capx-surface); border: 1px solid var(--capx-line); border-radius: var(--capx-r-md);
+  padding: 8px 12px; box-shadow: var(--capx-shadow-2);
+  flex-wrap: wrap;
+}
+#capx-editor .capx-ed-toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#capx-editor .capx-ed-group { display: flex; align-items: center; gap: 4px; }
+#capx-editor .capx-ed-sep { width: 1px; height: 22px; background: var(--capx-line); margin: 0 4px; }
+#capx-editor .capx-ed-tool {
+  width: 32px; height: 32px; border-radius: var(--capx-r-sm); border: 1px solid transparent;
+  background: transparent; color: var(--capx-text-2); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+  transition: background var(--capx-dur) var(--capx-ease), border-color var(--capx-dur) var(--capx-ease), color var(--capx-dur) var(--capx-ease);
+}
+#capx-editor .capx-ed-tool:hover { background: var(--capx-surface-2); border-color: var(--capx-line); color: var(--capx-text); }
+#capx-editor .capx-ed-tool.active { background: var(--capx-accent-soft); border-color: var(--capx-accent-line); color: var(--capx-accent); }
+#capx-editor .capx-ed-tool:disabled { opacity: .35; cursor: default; }
+#capx-editor .capx-ed-color {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; padding: 0; transition: transform .08s, border-color .12s;
+}
+#capx-editor .capx-ed-color:hover { transform: scale(1.12); }
+#capx-editor .capx-ed-color.active { border-color: #fff; }
+#capx-editor .capx-ed-width {
+  width: 28px; height: 28px; border-radius: var(--capx-r-sm); border: 1px solid transparent;
+  background: transparent; color: var(--capx-text-2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+#capx-editor .capx-ed-width.active { border-color: var(--capx-accent-line); color: var(--capx-accent); background: var(--capx-accent-soft); }
+#capx-editor .capx-ed-actions { display: flex; gap: 8px; }
+#capx-editor .capx-ed-cancel {
+  padding: 8px 16px; border-radius: var(--capx-r-sm); border: 1px solid var(--capx-line-strong); background: transparent;
+  color: var(--capx-text); font-size: 13px; cursor: pointer; font-family: inherit;
+}
+#capx-editor .capx-ed-cancel:hover { border-color: var(--capx-warn); color: var(--capx-warn); }
+#capx-editor .capx-ed-done {
+  padding: 8px 18px; border-radius: var(--capx-r-sm); border: none; background: var(--capx-accent); color: var(--capx-accent-ink);
+  font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--capx-accent) 28%, transparent);
+}
+#capx-editor .capx-ed-done:hover { filter: brightness(1.07); }
+#capx-editor .capx-ed-stage {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--capx-r-sm); overflow: hidden; box-shadow: var(--capx-shadow-2);
+  background: var(--capx-bg);
+}
+#capx-editor .capx-ed-canvas { display: block; cursor: crosshair; }
+#capx-editor .capx-ed-textinput {
+  position: fixed; z-index: 2147483648; transform: translateY(-2px);
+  background: rgba(6,10,16,0.55); border: 1px dashed currentColor; border-radius: 4px;
+  padding: 2px 6px; min-width: 80px; outline: none;
+  font-family: -apple-system, "PingFang SC", system-ui, sans-serif; font-weight: 700;
+}
+
+/* crop action bar */
+.capx-ed-cropbar {
+  position: fixed; z-index: 2147483648; transform: translate(-50%, 0);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--capx-surface); border: 1px solid var(--capx-line); border-radius: var(--capx-r-md);
+  padding: 6px 8px; box-shadow: var(--capx-shadow-2);
+  font-family: var(--capx-font);
+  white-space: nowrap;
+}
+.capx-ed-cropsize {
+  font-family: var(--capx-mono); font-size: 11.5px; color: var(--capx-accent);
+  padding: 0 4px;
+}
+.capx-ed-cropapply {
+  padding: 5px 12px; border-radius: var(--capx-r-sm); border: none; background: var(--capx-accent); color: var(--capx-accent-ink);
+  font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.capx-ed-cropapply:hover { filter: brightness(1.07); }
+.capx-ed-cropreset {
+  padding: 5px 12px; border-radius: var(--capx-r-sm); border: 1px solid var(--capx-line-strong); background: transparent;
+  color: var(--capx-text); font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.capx-ed-cropreset:hover { border-color: var(--capx-warn); color: var(--capx-warn); }
+
+/* 「截取此元素」未选中目标时：虚线边框 + 提示可悬停 */
+#capx-toolbar button[data-empty="true"] {
+  opacity: 1;
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--capx-line-strong);
+  color: var(--capx-text-3);
+}
+
+/* 模式切换段 */
+#capx-toolbar .capx-modes {
+  display: flex; gap: 2px; padding: 3px;
+  background: var(--capx-bg); border: 1px solid var(--capx-line); border-radius: var(--capx-r-sm);
+}
+#capx-toolbar .capx-mode {
+  font-family: inherit; font-size: 12px; padding: 4px 11px; border-radius: var(--capx-r-sm);
+  border: none; background: transparent; color: var(--capx-text-3); cursor: pointer;
+  transition: background var(--capx-dur) var(--capx-ease), color var(--capx-dur) var(--capx-ease);
+}
+#capx-toolbar .capx-mode:hover { color: var(--capx-text); background: var(--capx-accent-soft); }
+#capx-toolbar .capx-mode.active {
+  background: var(--capx-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--capx-accent-line);
+  color: var(--capx-accent);
+  font-weight: 700;
+}

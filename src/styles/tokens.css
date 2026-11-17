@@ -1,0 +1,63 @@
+/* Capx design tokens — 弹窗与覆盖层共用
+   原则：单一中性深色表面家族 + 青色只做强调 + 圆角三档 + 阴影两档 */
+
+:root {
+  /* 表面 */
+  --capx-bg: #0f1319;
+  --capx-surface: #161b23;
+  --capx-surface-2: #1d242e;
+  --capx-line: #2a3340;
+  --capx-line-strong: #3a4655;
+
+  /* 文字 */
+  --capx-text: #e6e9ef;
+  --capx-text-2: #9aa4b4;
+  --capx-text-3: #6b7686;
+
+  /* 强调 */
+  --capx-accent: #22d3ee;
+  --capx-accent-ink: #06212a;
+  --capx-accent-soft: rgba(34, 211, 238, 0.12);
+  --capx-accent-line: rgba(34, 211, 238, 0.35);
+  --capx-warn: #f0976b;
+
+  /* 形状（xs 仅用于选框/手柄等 2px 描边的小件） */
+  --capx-r-xs: 3px;
+  --capx-r-sm: 6px;
+  --capx-r-md: 10px;
+  --capx-r-lg: 14px;
+
+  /* 阴影 */
+  --capx-shadow-1: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --capx-shadow-2: 0 16px 40px rgba(0, 0, 0, 0.5);
+
+  /* 动效 */
+  --capx-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --capx-dur: 0.16s;
+
+  /* 字体 */
+  --capx-font: -apple-system, "PingFang SC", "Segoe UI", system-ui, sans-serif;
+  --capx-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
+/* ============ 浅色主题（theme=light 或系统 prefers-color-scheme: light + auto） ============ */
+:root[data-capx-theme='light'] {
+  --capx-bg: #f4f6f9;
+  --capx-surface: #ffffff;
+  --capx-surface-2: #eef1f6;
+  --capx-line: #d8dfe8;
+  --capx-line-strong: #b9c4d1;
+
+  --capx-text: #16202b;
+  --capx-text-2: #536273;
+  --capx-text-3: #8996a5;
+
+  --capx-accent: #0891a8;
+  --capx-accent-ink: #ffffff;
+  --capx-accent-soft: rgba(8, 145, 168, 0.1);
+  --capx-accent-line: rgba(8, 145, 168, 0.35);
+  --capx-warn: #c2410c;
+
+  --capx-shadow-1: 0 2px 8px rgba(16, 32, 48, 0.1);
+  --capx-shadow-2: 0 16px 40px rgba(16, 32, 48, 0.2);
+}
