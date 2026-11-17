@@ -373,8 +373,14 @@ def gen_icon():
     # 右下角橙色小点：隐藏功能标识
     d.ellipse([S - 150, S - 150, S - 70, S - 70], fill=(240, 151, 107, 255))
     d.ellipse([S - 150, S - 150, S - 70, S - 70], outline=(255, 255, 255, 255), width=8)
-    im = im.resize((128, 128), Image.LANCZOS)
-    im.save(os.path.join(OUT, 'icon-128.png'))
+    # 商店展示图标 128
+    im.resize((128, 128), Image.LANCZOS).save(os.path.join(OUT, 'icon-128.png'))
+    # 同步到扩展实际使用的 public/icon（保证商店图标与工具栏图标一致）
+    public_icon = os.path.join(os.path.dirname(OUT), 'public', 'icon')
+    if os.path.isdir(public_icon):
+        for s in (16, 32, 48, 128):
+            im.resize((s, s), Image.LANCZOS).save(os.path.join(public_icon, f'{s}.png'))
+        print('synced extension icons to public/icon/')
 
 if __name__ == '__main__':
     gen_hero(); gen_capture(); gen_hide(); gen_batch(); gen_rules()
